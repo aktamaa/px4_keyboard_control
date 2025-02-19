@@ -34,27 +34,28 @@ ros2 run px4_keyboard_control px4_offboard_control
 `p`: Switch to Position Control mode  
 `v`: Switch to Velocity Control mode  
 `b`: Brake/Stop in Velocity Control mode (zeroing velocity)
+`q`: Exit (stop the node)
 
 ### Movement Commands in Position Control Mode
 In position control mode, each movement command moves the drone **1 meter** from its current position.
 
 `w`: Move upward  
 `s`: Move downward  
-`a`: Move left (roll left)  
-`d`: Move right (roll right)  
+`a`: Rotate left (yaw left)  
+`d`: Rotate right (yaw right)  
 `i`: Move forward  
 `k`: Move backward  
-`j`: Rotate left (yaw left)  
-`l`: Rotate right (yaw right)  
+`j`: Move left (roll left)  
+`l`: Move right (roll right)  
 
 ### Movement Commands in Velocity Control Mode
 In velocity control mode, each movement command **increases the drone's velocity by 0.5** in the specified direction.
 
 `w`: Increase upward velocity (ascend)  
 `s`: Increase downward velocity (descend)  
-`a`: Increase leftward velocity (strafe left)  
-`d`: Increase rightward velocity (strafe right)  
+`a`: Increase rotation velocity to the left (yaw left)  
+`d`: Increase rotation velocity to the right (yaw right)  
 `i`: Increase forward velocity  
 `k`: Increase backward velocity  
-`j`: Rotate left (yaw left)  
-`l`: Rotate right (yaw right)  
+`j`: Increase leftward velocity (roll left)  
+`l`: Increase rightward velocity (roll right)  
