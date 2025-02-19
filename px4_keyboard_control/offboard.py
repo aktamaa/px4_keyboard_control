@@ -5,8 +5,9 @@ from rclpy.node import Node
 from rclpy.clock import Clock
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleStatus, VehicleAttitude
-from geometry_msgs.msg import PoseStamped, Twist, Vector3
+from geometry_msgs.msg import PoseStamped, Twist, Vector3, Point
 from std_msgs.msg import String
+from quadrotor_msgs import PositionCommand
 import math
 import numpy as np
 
@@ -22,6 +23,13 @@ class OffboardControl(Node):
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
             depth=1
+        )
+
+        qos_profile2 = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
         )
 
         # Publishers
@@ -45,6 +53,8 @@ class OffboardControl(Node):
             String, '/keyboard_cmd', self.keyboard_command_callback, qos_profile)
         self.attitude_sub = self.create_subscription(
             VehicleAttitude, '/fmu/out/vehicle_attitude', self.attitude_callback, qos_profile)
+        self.fastplanner_sub = self.create_subscription(
+            PositionCommand, '/planning/pos_cmd', self.fastplanner_callback, qos_profile2)
 
         # Initialize variables for Position Control Mode
         self.offboard_setpoint_counter = 0
@@ -63,6 +73,13 @@ class OffboardControl(Node):
         self.velocity = Vector3()
         self.yaw = 0.0
         self.trueYaw = 0.0
+
+        # Fast planner params
+        self.fp_position = Point()
+        self.fp_velocity = Vector3()
+        self.fp_acceleration = Vector3()
+        self.fp_yaw = 0.0
+        self.fp_yaw_dot = 0.0
 
         # Timer
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -98,6 +115,13 @@ class OffboardControl(Node):
         #trueYaw is the drones current yaw value
         self.trueYaw = -(np.arctan2(2.0*(orientation_q[3]*orientation_q[0] + orientation_q[1]*orientation_q[2]), 
                                   1.0 - 2.0*(orientation_q[0]*orientation_q[0] + orientation_q[1]*orientation_q[1])))
+        
+    def fastplanner_callback(self, msg):
+        self.fp_position = msg.position
+        self.fp_velocity = msg.velocity
+        self.fp_acceleration = msg.acceleration
+        self.fp_yaw = msg.yaw
+        self.fp_yaw_dot = msg.yaw_dot
 
     def arm(self):
         self.publish_vehicle_command(
@@ -120,8 +144,9 @@ class OffboardControl(Node):
     
     def publish_offboard_control_heartbeat_signal(self):
         msg = OffboardControlMode()
-        msg.position = True if self.control_mode == "POSITION" else False
+        msg.position = True if self.control_mode == "POSITION" else False if self.control_mode == "VELOCITY" else True
         msg.velocity = True if self.control_mode == "VELOCITY" else False
+        # msg.acceleration = True if self.control_mode == "FAST-PLANNER" else False
         msg.acceleration = False
         msg.attitude = False
         msg.body_rate = False
@@ -165,6 +190,22 @@ class OffboardControl(Node):
         self.get_logger().info(f"Publishing velocity setpoints {[velocity_world_x, velocity_world_y, self.velocity.z]} and yaw {self.yaw}")
 
         self.trajectory_setpoint_publisher.publish(trajectory_msg)
+    
+    def publish_fastplanner_setpoint(self):
+        # cos_yaw = np.cos(self.trueYaw)
+        # sin_yaw = np.sin(self.trueYaw)
+        # world_x = (x * cos_yaw - y * sin_yaw)
+        # world_y = (y * sin_yaw + y * cos_yaw)
+
+        msg = TrajectorySetpoint()
+        msg.position = [self.fp_position.x, -self.fp_position.y, -self.fp_position.z+self.setpoint_position.pose.position.z]
+        # msg.velocity = [self.fp_velocity.x, self.fp_velocity.y, self.fp_velocity.z]
+        # msg.acceleration = [self.fp_acceleration.x, self.fp_acceleration.y, self.fp_acceleration.z]
+        msg.yaw = -self.fp_yaw
+        msg.yawspeed = -self.fp_yaw_dot
+        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+        self.trajectory_setpoint_publisher.publish(msg)
+        self.get_logger().info(f"Publishing position setpoints {[self.setpoint_position.pose.position.x, self.setpoint_position.pose.position.y, self.setpoint_position.pose.position.z]} and yaw {self.setpoint_position.pose.orientation.z}")
 
     def publish_vehicle_command(self, command, **params):
         msg = VehicleCommand()
@@ -195,8 +236,6 @@ class OffboardControl(Node):
             self.disarm()
         elif self.keyboard_command == "LAND":
             self.land()
-        elif self.keyboard_command == "HOLD":
-            self.hold()
         elif self.keyboard_command == "POS":
             self.control_mode = "POSITION"
             self.setpoint_position.pose.position.x = self.vehicle_local_position.x
@@ -212,6 +251,8 @@ class OffboardControl(Node):
             self.velocity.x = 0.0
             self.velocity.y = 0.0
             self.velocity.z = 0.0
+        elif self.keyboard_command == "FAST-PLANNER":
+            self.control_mode = "FAST-PLANNER"
         self.keyboard_command = ""
 
         if (self.vehicle_local_position.x != self.setpoint_position.pose.position.x or
@@ -223,6 +264,8 @@ class OffboardControl(Node):
                 self.publish_position_setpoint()
             elif self.control_mode == "VELOCITY":
                 self.publish_velocity_setpoint()
+            elif self.control_mode == "FAST-PLANNER":
+                self.publish_fastplanner_setpoint()
 
         if self.offboard_setpoint_counter < 11:
             self.offboard_setpoint_counter += 1
