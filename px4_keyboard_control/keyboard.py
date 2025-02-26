@@ -175,10 +175,10 @@ class PX4KeyboardHandler(Node):
                     yaw_val = 0.0
                     self.keyboard_cmd_publisher.publish(keyboard_command)
                     self.get_logger().info('A BREAK request has been sent.')
-                elif key == 'f':
-                    keyboard_command.data = "FAST-PLANNER"
-                    self.keyboard_cmd_publisher.publish(keyboard_command)
-                    self.get_logger().info('A request to change to FAST-PLANNER CONTROL mode has been sent.')
+                # elif key == 'f':
+                #     keyboard_command.data = "FAST-PLANNER"
+                #     self.keyboard_cmd_publisher.publish(keyboard_command)
+                #     self.get_logger().info('A request to change to FAST-PLANNER CONTROL mode has been sent.')
                 elif key == 'g':
                     keyboard_command.data = "LAND"
                     vel_pos_toggle = "position"
