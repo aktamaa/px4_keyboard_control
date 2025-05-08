@@ -6,7 +6,14 @@ ROS2-based Keyboard Control Code to Control a PX4 Multicopter.
 This code supports both **Position** and **Velocity** control for the **Offboard** mode in PX4. It has been tested in simulation and through field tests on a drone. It is working with MicroXRCE middleware.
 
 ## Installation
-Before building this package, please install the [px4_msgs](https://github.com/PX4/px4_msgs) in advance.
+Before building this package, please install the [px4_msgs](https://github.com/PX4/px4_msgs) in advance. Then, as this package supports the Ego-Swarm planner and it is using a custom message called Quadrotor Messages, you need to also have it installed in your system. The easiest way is to install the Ego-Swarm ROS2 package with these commands below.
+```bash
+git clone -b ros2_version https://github.com/ZJU-FAST-Lab/ego-planner-swarm.git
+cd ego-planner-swarm
+colcon build
+source install/setup.bash
+```
+After that, you can build this package using these commands below.
 ```bash
 mkdir -p ~/px4_control_ws/src
 cd ~/px4_control_ws/src
