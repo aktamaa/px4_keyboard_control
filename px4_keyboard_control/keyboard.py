@@ -178,7 +178,7 @@ class PX4KeyboardHandler(Node):
                 elif key == 'f':
                     keyboard_command.data = "FAST-PLANNER"
                     self.keyboard_cmd_publisher.publish(keyboard_command)
-                    self.get_logger().info('A request to change to FAST-PLANNER CONTROL mode has been sent.')
+                    self.get_logger().info('A request to change to PLANNER CONTROL mode has been sent.')
                 elif key == 'g':
                     keyboard_command.data = "LAND"
                     vel_pos_toggle = "position"

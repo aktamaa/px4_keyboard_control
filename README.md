@@ -40,6 +40,7 @@ ros2 run px4_keyboard_control px4_offboard_control
 `g`: Switch to Land mode  
 `p`: Switch to Position Control mode  
 `v`: Switch to Velocity Control mode  
+`f`: Switch to Planner Control mode  
 `b`: Brake/Stop in Velocity Control mode (zeroing velocity)
 
 ### Movement Commands in Position Control Mode
